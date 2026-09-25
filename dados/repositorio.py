@@ -1,12 +1,8 @@
-﻿"""
-Modulo responsavel pelo armazenamento e manipulacao dos dados dos filmes.
-Mantem uma estrutura simples em memoria para facilitar alteracoes futuras.
-"""
+﻿# Modulo responsavel pelo armazenamento e manipulacao dos dados dos filmes.
 
 class RepositorioFilmes:
-    """
-    Classe para gerenciar o catalogo de filmes da locadora.
-    """
+    # Classe para gerenciar o catalogo de filmes da locadora.
+    
     def __init__(self):
         # Lista interna que armazena dicionarios com os dados de cada filme
         self._filmes = [
@@ -47,11 +43,10 @@ class RepositorioFilmes:
         self._proximo_id = 4
 
     def listar_todos(self):
-        """Retorna todos os filmes cadastrados."""
+        #Retorna todos os filmes cadastrados.
         return list(self._filmes)
 
     def adicionar(self, titulo, genero, ano, preco, midia, disponivel, avaliacao, sinopse):
-        """Adiciona um novo filme ao catalogo."""
         filme = {
             "id": self._proximo_id,
             "titulo": str(titulo).strip(),
@@ -68,20 +63,17 @@ class RepositorioFilmes:
         return filme
 
     def remover_por_id(self, filme_id):
-        """Remove um filme a partir de seu identificador unico."""
         tamanho_anterior = len(self._filmes)
         self._filmes = [f for f in self._filmes if f["id"] != filme_id]
         return len(self._filmes) < tamanho_anterior
 
     def buscar_por_id(self, filme_id):
-        """Busca um filme especifico pelo identificador."""
         for f in self._filmes:
             if f["id"] == filme_id:
                 return f
         return None
 
     def alterar_status(self, filme_id, disponivel):
-        """Altera a disponibilidade de locacao de um filme."""
         filme = self.buscar_por_id(filme_id)
         if filme:
             filme["disponivel"] = disponivel

@@ -1,28 +1,12 @@
-﻿"""
-Modulo para a Janela Adicional Independente.
-Conforme a Aula 04, qualquer widget sem um no pai atua como uma janela independente (nao-bloqueante).
-"""
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget
-)
+from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 
 class JanelaDetalhesFilme(QWidget):
-    """
-    Janela secundaria independente para visualizacao detalhada de um filme.
-    Permite alterar o status de locacao e emite sinal de volta a janela principal.
-    """
     # Sinal customizado emitido quando o status do filme e modificado nesta janela
     statusModificado = Signal(int, bool)
 
     def __init__(self):
-        # Sem no pai: torna-se uma janela independente
         super().__init__()
 
         self.setWindowTitle("Detalhes do Filme - Locadora")
@@ -38,7 +22,7 @@ class JanelaDetalhesFilme(QWidget):
         layout_info = QVBoxLayout()
 
         self.label_titulo = QLabel("Titulo: -")
-        self.label_titulo.setStyleSheet("font-size: 14px; font-weight: bold;")
+        self.label_titulo.setStyleSheet("font-size: 24px; font-weight: bold;")
         self.label_genero = QLabel("Genero: -")
         self.label_ano = QLabel("Ano de Lancamento: -")
         self.label_preco = QLabel("Preco da Diaria: -")
@@ -75,12 +59,12 @@ class JanelaDetalhesFilme(QWidget):
         self.setLayout(layout_principal)
 
     def exibir_filme(self, filme):
-        """Atualiza a interface da janela secundaria com os dados do filme recebido."""
+        #Atualiza a interface da janela secundaria com os dados do filme recebido.
         self._filme_atual = filme
         if not filme:
             return
 
-        self.label_titulo.setText(f"Titulo: {filme['titulo']}")
+        self.label_titulo.setText(f"{filme['titulo']}")
         self.label_genero.setText(f"Genero: {filme['genero']}")
         self.label_ano.setText(f"Ano: {filme['ano']}")
         self.label_preco.setText(f"Preco: R$ {filme['preco']:.2f}")
@@ -92,17 +76,15 @@ class JanelaDetalhesFilme(QWidget):
 
         # Atualiza o texto do botao de acao
         if filme["disponivel"]:
-            self.botao_alternar_status.setText("Realizar Locacao (Alugar)")
+            self.botao_alternar_status.setText("Realizar Locacao")
         else:
             self.botao_alternar_status.setText("Registrar Devolucao")
 
-        # Exibe a janela (conforme exemplo da Aula 04)
         self.show()
         self.raise_()
         self.activateWindow()
 
     def _alternar_locacao(self):
-        """Slot para inverter o status de locacao e notificar via sinal customizado."""
         if not self._filme_atual:
             return
 
