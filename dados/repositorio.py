@@ -1,11 +1,14 @@
-﻿#Modulo responsavel pelo armazenamento e manipulacao dos dados dos filmes.
-
+﻿import csv
 import json
 import os
 
 class RepositorioFilmes:
     
     ARQUIVO_DADOS = "dados.json" # Constante com o nome do arquivo de banco de dados
+
+    # Configuracoes da exportacao para CSV
+    CABECALHO_CSV = ["ID", "Titulo", "Genero", "Ano", "Preco (R$)", "Midia", "Status", "Nota", "Sinopse"]
+    DELIMITADOR_CSV = "," 
     
     def __init__(self): # Lista interna que armazena dicionarios com os dados de cada filme
         self._filmes = []
@@ -26,7 +29,7 @@ class RepositorioFilmes:
                 except json.JSONDecodeError:
                     self._filmes = []
         else:
-            # Preenche a lista com filmes de exemplo caso o arquivo ainda nao exista
+            # Preenche a lista com filmes de exemplo 
             self._filmes = [
                 {
                     "id": 1,
@@ -66,11 +69,11 @@ class RepositorioFilmes:
             
             self._salvar_dados()  # Salva o arquivo inicial no disco
 
-    def _salvar_dados(self): # Escreve o conteudo da lista no arquivo json de forma permanente
+    def _salvar_dados(self): 
         with open(self.ARQUIVO_DADOS, 'w', encoding='utf-8') as arquivo: 
             json.dump(self._filmes, arquivo, indent=4, ensure_ascii=False)
 
-    def listar_todos(self): #Retorna todos os filmes cadastrados.
+    def listar_todos(self): 
         return list(self._filmes)
 
     def adicionar(self, titulo, genero, ano, preco, midia, disponivel, avaliacao, sinopse):
@@ -117,3 +120,27 @@ class RepositorioFilmes:
             self._salvar_dados()
             return True
         return False
+
+    def exportar_csv(self, caminho):
+        # Grava todo o catalogo (e nao apenas o que esta filtrado na tabela) em um arquivo CSV.
+        filmes = self.listar_todos()
+
+        # utf-8-sig adiciona um marcador que faz o Excel reconhecer os acentos corretamente.
+        with open(caminho, 'w', encoding='utf-8-sig', newline='') as arquivo:
+            escritor = csv.writer(arquivo, delimiter=self.DELIMITADOR_CSV)
+            escritor.writerow(self.CABECALHO_CSV)
+
+            for f in filmes:
+                escritor.writerow([
+                    f["id"],
+                    f["titulo"],
+                    f["genero"],
+                    f["ano"],
+                    f"{f['preco']:.2f}",
+                    f["midia"],
+                    "Disponivel" if f["disponivel"] else "Alugado",
+                    f["avaliacao"],
+                    f["sinopse"],
+                ])
+
+        return len(filmes)

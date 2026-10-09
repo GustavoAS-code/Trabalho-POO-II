@@ -1,6 +1,8 @@
-﻿from PySide6.QtCore import Qt, QSize
+﻿import os
+
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QComboBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton, QStackedLayout, QStatusBar, QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton, QStackedLayout, QStatusBar, QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget
 
 
 from dados.repositorio import RepositorioFilmes
@@ -55,6 +57,12 @@ class JanelaPrincipal(QMainWindow):
         self.acao_remover.setShortcut(QKeySequence.StandardKey.Delete)
         self.acao_remover.triggered.connect(self._remover_filme_selecionado)
 
+        # Acao Exportar CSV
+        self.acao_exportar = QAction("Exportar CSV", self)
+        self.acao_exportar.setStatusTip("Exportar todo o catalogo de filmes para um arquivo CSV")
+        self.acao_exportar.setShortcut(QKeySequence("Ctrl+E"))
+        self.acao_exportar.triggered.connect(self._exportar_catalogo_csv)
+
         # Acao Alternar Visualizacao: Catalogo
         self.acao_ver_catalogo = QAction("Ver Catalogo de Filmes", self)
         self.acao_ver_catalogo.setStatusTip("Exibir a tabela de catalogo")
@@ -85,6 +93,7 @@ class JanelaPrincipal(QMainWindow):
         toolbar.addAction(self.acao_novo)
         toolbar.addAction(self.acao_detalhes)
         toolbar.addAction(self.acao_remover)
+        toolbar.addAction(self.acao_exportar)
 
         toolbar.addSeparator()
 
@@ -167,7 +176,12 @@ class JanelaPrincipal(QMainWindow):
         self.btn_locar = QPushButton("Alugar / Devolver")
         self.btn_locar.clicked.connect(self._alternar_locacao_selecionado)
 
+        self.btn_exportar = QPushButton("Exportar CSV")
+        self.btn_exportar.setToolTip("Exporta todo o catalogo para um arquivo CSV")
+        self.btn_exportar.clicked.connect(self._exportar_catalogo_csv)
+
         layout_botoes.addWidget(self.btn_locar)
+        layout_botoes.addWidget(self.btn_exportar)
         layout_catalogo.addLayout(layout_botoes)
 
         widget_catalogo.setLayout(layout_catalogo)
@@ -280,6 +294,35 @@ class JanelaPrincipal(QMainWindow):
             self.repositorio.remover_por_id(filme["id"])
             self._atualizar_tabela()
             self.status_bar.showMessage(f"Filme '{filme['titulo']}' removido.", 3000)
+
+    def _exportar_catalogo_csv(self):
+        # Exporta o catalogo completo, ignorando os filtros ativos na tabela
+        if not self.repositorio.listar_todos():
+            QMessageBox.warning(self, "Catalogo Vazio", "Nao ha filmes cadastrados para exportar.")
+            return
+
+        # Dialogo nativo para o usuario escolher onde salvar o arquivo
+        caminho, _ = QFileDialog.getSaveFileName(self, "Exportar Catalogo", "catalogo_filmes.csv", "Arquivos CSV (*.csv)")
+
+        # Retorno vazio significa que o usuario cancelou o dialogo
+        if not caminho:
+            self.status_bar.showMessage("Exportacao cancelada.", 3000)
+            return
+
+        # Garante a extensao .csv caso o usuario tenha digitado apenas o nome
+        if not caminho.lower().endswith(".csv"):
+            caminho += ".csv"
+
+        try:
+            quantidade = self.repositorio.exportar_csv(caminho)
+        except OSError as erro:
+            # Ex.: sem permissao de escrita ou arquivo aberto em outro programa
+            QMessageBox.critical(self, "Erro na Exportacao", f"Nao foi possivel salvar o arquivo:\n{erro}")
+            self.status_bar.showMessage("Falha ao exportar o catalogo.", 3000)
+            return
+
+        QMessageBox.information(self, "Exportacao Concluida", f"{quantidade} filme(s) exportado(s) com sucesso para:\n{os.path.abspath(caminho)}")
+        self.status_bar.showMessage(f"Catalogo exportado: {quantidade} filme(s).", 3000)
 
     def _slot_busca_rapida(self, texto):
         # Sincroniza com o campo de filtro principal
