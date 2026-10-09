@@ -63,6 +63,12 @@ class JanelaPrincipal(QMainWindow):
         self.acao_exportar.setShortcut(QKeySequence("Ctrl+E"))
         self.acao_exportar.triggered.connect(self._exportar_catalogo_csv)
 
+        # Acao Importar CSV
+        self.acao_importar = QAction("Importar em Lote", self)
+        self.acao_importar.setStatusTip("Importar filmes a partir de um arquivo TXT ou CSV")
+        self.acao_importar.setShortcut(QKeySequence("Ctrl+I"))
+        self.acao_importar.triggered.connect(self._importar_catalogo_lote)
+
         # Acao Alternar Visualizacao: Catalogo
         self.acao_ver_catalogo = QAction("Ver Catalogo de Filmes", self)
         self.acao_ver_catalogo.setStatusTip("Exibir a tabela de catalogo")
@@ -94,6 +100,7 @@ class JanelaPrincipal(QMainWindow):
         toolbar.addAction(self.acao_detalhes)
         toolbar.addAction(self.acao_remover)
         toolbar.addAction(self.acao_exportar)
+        toolbar.addAction(self.acao_importar)
 
         toolbar.addSeparator()
 
@@ -180,8 +187,13 @@ class JanelaPrincipal(QMainWindow):
         self.btn_exportar.setToolTip("Exporta todo o catalogo para um arquivo CSV")
         self.btn_exportar.clicked.connect(self._exportar_catalogo_csv)
 
+        self.btn_importar = QPushButton("Importar em Lote")
+        self.btn_importar.setToolTip("Importa filmes a partir de um arquivo TXT ou CSV")
+        self.btn_importar.clicked.connect(self._importar_catalogo_lote)
+
         layout_botoes.addWidget(self.btn_locar)
         layout_botoes.addWidget(self.btn_exportar)
+        layout_botoes.addWidget(self.btn_importar)
         layout_catalogo.addLayout(layout_botoes)
 
         widget_catalogo.setLayout(layout_catalogo)
@@ -323,6 +335,44 @@ class JanelaPrincipal(QMainWindow):
 
         QMessageBox.information(self, "Exportacao Concluida", f"{quantidade} filme(s) exportado(s) com sucesso para:\n{os.path.abspath(caminho)}")
         self.status_bar.showMessage(f"Catalogo exportado: {quantidade} filme(s).", 3000)
+
+    def _importar_catalogo_lote(self):
+        # Dialogo para escolher arquivo CSV ou TXT
+        caminho, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar Filmes em Lote",
+            "",
+            "Arquivos Suportados (*.csv *.txt);;Arquivos CSV (*.csv);;Arquivos de Texto (*.txt)"
+        )
+
+        if not caminho:
+            self.status_bar.showMessage("Importacao cancelada.", 3000)
+            return
+
+        try:
+            quantidade = self.repositorio.importar_lote(caminho)
+            if quantidade > 0:
+                self._atualizar_tabela()
+                QMessageBox.information(
+                    self,
+                    "Importacao Concluida",
+                    f"{quantidade} filme(s) importado(s) com sucesso a partir de:\n{os.path.abspath(caminho)}"
+                )
+                self.status_bar.showMessage(f"Importacao concluida: {quantidade} filme(s) adicionado(s).", 3000)
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Nenhum Filme Importado",
+                    "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo."
+                )
+                self.status_bar.showMessage("Nenhum filme foi importado.", 3000)
+        except Exception as erro:
+            QMessageBox.critical(
+                self,
+                "Erro na Importacao",
+                f"Ocorreu um erro ao processar o arquivo:\n{erro}"
+            )
+            self.status_bar.showMessage("Falha ao importar filmes.", 3000)
 
     def _slot_busca_rapida(self, texto):
         # Sincroniza com o campo de filtro principal

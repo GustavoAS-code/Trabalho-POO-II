@@ -144,3 +144,91 @@ class RepositorioFilmes:
                 ])
 
         return len(filmes)
+
+    def importar_lote(self, caminho): # Le um arquivo de texto (.txt ou .csv) e cadastra multiplos filmes em lote.
+    
+        if not os.path.exists(caminho):
+            raise FileNotFoundError(f"Arquivo '{caminho}' nao encontrado.")
+
+        filmes_importados = 0
+
+        # utf-8-sig trata tanto arquivos UTF-8 padrao quanto criados pelo Windows/Excel
+        with open(caminho, 'r', encoding='utf-8-sig') as arquivo:
+            primeira_linha = arquivo.readline()
+            if not primeira_linha:
+                return 0
+
+            # Detecta se o separador e ';' ou ','
+            delimitador = ';' if ';' in primeira_linha else ','
+            arquivo.seek(0)
+
+            leitor = csv.reader(arquivo, delimiter=delimitador)
+
+            for linha in leitor:
+                # Pula linhas vazias
+                if not linha or not any(campo.strip() for campo in linha):
+                    continue
+
+                # Pula cabecalho
+                primeira_coluna = linha[0].strip().lower()
+                if primeira_coluna in ["id", "titulo", "título"]:
+                    continue
+
+                # Se o arquivo tiver a coluna ID (9 colunas como o exportado), comeca da coluna 1
+                # Se nao tiver coluna ID (8 colunas), comeca da coluna 0
+                if len(linha) >= 9:
+                    colunas = linha[1:]
+                elif len(linha) >= 8:
+                    colunas = linha
+                else:
+                    continue  # Linha incompleta, ignora
+
+                try:
+                    titulo = colunas[0].strip()
+                    genero = colunas[1].strip()
+                    ano = int(colunas[2].strip())
+                    
+                    # Converte formato de preco (remove 'R$', espacos e troca virgula por ponto)
+                    preco_str = colunas[3].replace("R$", "").replace(" ", "").replace(",", ".").strip()
+                    preco = float(preco_str)
+
+                    midia = colunas[4].strip()
+                    if midia not in ["DVD", "Blu-ray", "Digital"]:
+                        midia = "DVD"
+
+                    disp_str = colunas[5].strip().lower()
+                    disponivel = disp_str in ["disponivel", "disponível", "true", "1", "sim", "yes"]
+
+                    nota_str = colunas[6].replace("/10", "").strip()
+                    avaliacao = int(float(nota_str))
+
+                    sinopse = colunas[7].strip() if len(colunas) > 7 else ""
+
+                    if not titulo:
+                        continue
+
+                    # Cria o novo filme garantindo ID sequencial unico
+                    novo_filme = {
+                        "id": self._proximo_id,
+                        "titulo": titulo,
+                        "genero": genero,
+                        "ano": ano,
+                        "preco": preco,
+                        "midia": midia,
+                        "disponivel": disponivel,
+                        "avaliacao": avaliacao,
+                        "sinopse": sinopse
+                    }
+                    self._filmes.append(novo_filme)
+                    self._proximo_id += 1
+                    filmes_importados += 1
+
+                except (ValueError, IndexError):
+                    # Se alguma linha tiver formato invalido, apenas ignora e pula para a proxima
+                    continue
+
+        # Salva o JSON no disco apenas uma vez ao final de toda a leitura
+        if filmes_importados > 0:
+            self._salvar_dados()
+
+        return filmes_importados
