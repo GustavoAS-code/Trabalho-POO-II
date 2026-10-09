@@ -12,6 +12,7 @@ O sistema permite o gerenciamento do acervo com as seguintes funcionalidades:
 * Alternância no status dos filmes (locação e devolução) diretamente na tela principal ou na janela de detalhes.
 * Remoção de filmes mediante alerta de confirmação.
 * Barra de progresso visual que indica a taxa de disponibilidade atual do acervo.
+* Exportacao de dados: botao "Exportar CSV" (tambem na barra de ferramentas e no atalho Ctrl+E) que salva todo o catalogo em um arquivo CSV escolhido pelo usuario.
 
 ## Requisitos Técnicos Implementados
 
