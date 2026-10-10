@@ -1,0 +1,17 @@
+
+CHANGELOG - SISTEMA DE LOCADORA DE FILMES (TRABALHO POO II)
+
+Atualização 1: Persistência de Dados em JSON - Gustavo Antonio
+- Implementação da classe RepositorioFilmes para gerenciar o acervo de filmes.
+- Substituição da lista temporária em memória por armazenamento local utilizando o arquivo `dados.json`.
+- Configuração de carregamento automático na inicialização da aplicação e salvamento em tempo real após cada cadastro, remoção ou alteração de status.
+
+Atualização 2: Exportação de Catálogo em CSV - Rian de Oliveira
+- Adição do método `exportar_csv` no repositório para gravação de todo o acervo em formato tabular.
+- Integração de nova ação (`QAction`) na barra de ferramentas e botão correspondente na interface principal (`janela_principal.py`).
+- Uso do diálogo`QFileDialog` para escolha do caminho de salvamento e codificação `utf-8-sig` para manter caracteres especiais e compatibilidade com o Excel.
+
+Atualização 3: Importação em Lote de Arquivos (TXT e CSV) - Luan Cristian
+- Criação do método `importar_lote` para leitura e inserção automatizada de muitos filmes a partir de arquivos externos.
+- Suporte a arquivos nos formatos TXT e CSV com detecção dinâmica de vírgula ou ponto e vírgula.
+- Tratamento de exceções para linhas incompletas ou erradas, garantindo a integridade dos dados e atualização imediata da tabela e da barra de disponibilidade do acervo.
