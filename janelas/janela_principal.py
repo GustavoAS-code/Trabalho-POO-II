@@ -1,14 +1,43 @@
 ﻿import os
+import time
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton, QStackedLayout, QStatusBar, QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget
-
+from PySide6.QtWidgets import (
+    QApplication, QComboBox, QFileDialog, QHBoxLayout, QHeaderView,
+    QLabel, QLineEdit, QMainWindow, QMessageBox, QProgressBar,
+    QPushButton, QStackedLayout, QStatusBar, QTableWidget,
+    QTableWidgetItem, QToolBar, QVBoxLayout, QWidget
+)
 
 from dados.repositorio import RepositorioFilmes
 from componentes.dialogo_cadastro import DialogoCadastroFilme
 from componentes.janela_detalhes import JanelaDetalhesFilme
 
+# Sinais para comunicar o resultado da thread secundaria para a janela principal
+class SinaisImportacao(QObject):
+
+    concluido = Signal(int, str)
+    erro = Signal(str)
+
+# Thread de trabalho para processar a importacao em lote sem travar a GUI.
+class TrabalhadorImportacao(QRunnable):
+
+    def __init__(self, repositorio, caminho):
+        super().__init__()
+        self.repositorio = repositorio
+        self.caminho = caminho
+        self.sinais = SinaisImportacao()
+
+    @Slot()
+    def run(self):
+        try:
+            # Pausa simulada para mostrar que a janela nao congela
+            time.sleep(2)
+            quantidade = self.repositorio.importar_lote(self.caminho)
+            self.sinais.concluido.emit(quantidade, self.caminho)
+        except Exception as erro:
+            self.sinais.erro.emit(str(erro))
 
 class JanelaPrincipal(QMainWindow):
     def __init__(self):
@@ -22,6 +51,9 @@ class JanelaPrincipal(QMainWindow):
         # Instancias de dados e janela adicional 
         self.repositorio = RepositorioFilmes()
         self.janela_detalhes = JanelaDetalhesFilme()
+
+        # Gerenciador de threads para execucao em paralelo
+        self.threadpool = QThreadPool()
 
         self.janela_detalhes.statusModificado.connect(self._slot_status_modificado_externamente)
 
@@ -337,42 +369,47 @@ class JanelaPrincipal(QMainWindow):
         self.status_bar.showMessage(f"Catalogo exportado: {quantidade} filme(s).", 3000)
 
     def _importar_catalogo_lote(self):
-        # Dialogo para escolher arquivo CSV ou TXT
-        caminho, _ = QFileDialog.getOpenFileName(
-            self,
-            "Importar Filmes em Lote",
-            "",
-            "Arquivos Suportados (*.csv *.txt);;Arquivos CSV (*.csv);;Arquivos de Texto (*.txt)"
+       # Abre diretamente na pasta do projeto e permite selecionar qualquer arquivo
+        caminho, _ = QFileDialog.getOpenFileName(self, "Importar Filmes em Lote",
+            os.getcwd(),  # Abre direto na raiz do projeto onde o arquivo está
+            "Todos os Arquivos (*.*);;Arquivos de Texto (*.txt);;Arquivos CSV (*.csv)"
         )
 
         if not caminho:
             self.status_bar.showMessage("Importacao cancelada.", 3000)
             return
 
-        try:
-            quantidade = self.repositorio.importar_lote(caminho)
-            if quantidade > 0:
-                self._atualizar_tabela()
-                QMessageBox.information(
-                    self,
-                    "Importacao Concluida",
-                    f"{quantidade} filme(s) importado(s) com sucesso a partir de:\n{os.path.abspath(caminho)}"
-                )
-                self.status_bar.showMessage(f"Importacao concluida: {quantidade} filme(s) adicionado(s).", 3000)
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Nenhum Filme Importado",
-                    "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo."
-                )
-                self.status_bar.showMessage("Nenhum filme foi importado.", 3000)
-        except Exception as erro:
-            QMessageBox.critical(
-                self,
-                "Erro na Importacao",
-                f"Ocorreu um erro ao processar o arquivo:\n{erro}"
-            )
-            self.status_bar.showMessage("Falha ao importar filmes.", 3000)
+        # Desabilita os botoes de importacao enquanto a thread esta rodando
+        self.btn_importar.setEnabled(False)
+        self.acao_importar.setEnabled(False)
+        self.status_bar.showMessage("Importando filmes em segundo plano (Thread em execução)...")
+
+        # Instancia o Worker e inicia a execucao paralela no QThreadPool
+        trabalhador = TrabalhadorImportacao(self.repositorio, caminho)
+        trabalhador.sinais.concluido.connect(self._slot_importacao_concluida)
+        trabalhador.sinais.erro.connect(self._slot_erro_importacao)
+        self.threadpool.start(trabalhador)
+
+    def _slot_importacao_concluida(self, quantidade, caminho):
+        # Reabilita os botoes ao finalizar a thread
+        self.btn_importar.setEnabled(True)
+        self.acao_importar.setEnabled(True)
+
+        if quantidade > 0:
+            self._atualizar_tabela()
+            QMessageBox.information(self,"Importacao Concluida", f"{quantidade} filme(s) importado(s) com sucesso a partir de:\n{os.path.abspath(caminho)}")
+            self.status_bar.showMessage(f"Importacao concluida: {quantidade} filme(s) adicionado(s).", 3000)
+        else:
+            QMessageBox.warning(self,"Nenhum Filme Importado", "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo.")
+            self.status_bar.showMessage("Nenhum filme foi importado.", 3000)
+
+    def _slot_erro_importacao(self, mensagem_erro):
+        # Reabilita os botoes caso ocorra erro na thread
+        self.btn_importar.setEnabled(True)
+        self.acao_importar.setEnabled(True)
+
+        QMessageBox.critical(self,"Erro na Importacao", f"Ocorreu um erro ao processar o arquivo:\n{mensagem_erro}")
+        self.status_bar.showMessage("Falha ao importar filmes.", 3000)
 
     def _slot_busca_rapida(self, texto):
         # Sincroniza com o campo de filtro principal
