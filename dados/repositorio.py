@@ -1,7 +1,9 @@
 ﻿import csv
 import json
 import os
+import shutil
 import time
+from datetime import datetime
 
 class RepositorioFilmes:
     
@@ -236,3 +238,19 @@ class RepositorioFilmes:
             self._salvar_dados()
 
         return filmes_importados
+
+    def fazer_backup(self): # Gera uma copia de seguranca do arquivo dados.json dentro da pasta 'backups/'.
+
+        if not os.path.exists(self.ARQUIVO_DADOS):
+            return None
+
+        pasta_backup = "backups"
+        os.makedirs(pasta_backup, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nome_backup = f"dados_backup_{timestamp}.json"
+        caminho_destino = os.path.join(pasta_backup, nome_backup)
+
+        # Realiza a copia do arquivo preservando os metadados
+        shutil.copy2(self.ARQUIVO_DADOS, caminho_destino)
+        return caminho_destino

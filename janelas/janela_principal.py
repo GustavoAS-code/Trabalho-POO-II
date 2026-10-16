@@ -1,6 +1,7 @@
 ﻿import os
+import threading
 import time
-
+from datetime import datetime
 from PySide6.QtCore import Qt, QSize, QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
@@ -20,6 +21,11 @@ class SinaisImportacao(QObject):
     concluido = Signal(int, str)
     progresso = Signal(int)
     erro = Signal(str)
+
+# Sinal para notificar a GUI que um backup foi concluido em background.
+class SinaisBackup(QObject):
+
+    backup_concluido = Signal(str)
 
 # Thread de trabalho para processar a importacao em lote sem travar a GUI.
 class TrabalhadorImportacao(QRunnable):
@@ -54,6 +60,13 @@ class JanelaPrincipal(QMainWindow):
 
         # Gerenciador de threads para execucao em paralelo
         self.threadpool = QThreadPool()
+
+        # Thread nativa em segundo plano para backup automatico
+        self.sinais_backup = SinaisBackup()
+        self.sinais_backup.backup_concluido.connect(self._slot_backup_concluido)
+        self._backup_ativo = True
+        self.thread_backup = threading.Thread(target=self._rotina_backup_automatico, daemon=True)
+        self.thread_backup.start()
 
         self.janela_detalhes.statusModificado.connect(self._slot_status_modificado_externamente)
 
@@ -446,6 +459,7 @@ class JanelaPrincipal(QMainWindow):
 
         if resposta == QMessageBox.StandardButton.Yes:
             # Fecha tambem a janela adicional caso esteja aberta
+            self._backup_ativo = False
             self.janela_detalhes.close()
             event.accept()
         else:
@@ -457,3 +471,28 @@ class JanelaPrincipal(QMainWindow):
             if self._obter_filme_selecionado():
                 self._abrir_janela_detalhes()
         super().keyPressEvent(event)
+
+    def _rotina_backup_automatico(self): # Rotina executada em paralelo que realiza o backup do arquivo dados.json a cada intervalo de tempo.
+    
+        # Aguarda 10 segundos apos iniciar o programa para realizar o primeiro backup
+        time.sleep(10)
+        
+        while self._backup_ativo:
+            try:
+                caminho = self.repositorio.fazer_backup()
+                if caminho:
+                    self.sinais_backup.backup_concluido.emit(caminho)
+            except Exception as e:
+                print(f"[Erro no Backup Automatico]: {e}")
+
+            # Intervalo de 60 segundos entre cada backup em background
+            # Verifica a cada segundo se o app foi encerrado para interromper o sleep
+            for _ in range(60):
+                if not self._backup_ativo:
+                    break
+                time.sleep(1)
+
+    def _slot_backup_concluido(self, caminho_backup):
+        # Slot que roda na thread principal e avisa na barra de status que o backup ocorreu.
+        nome_arquivo = os.path.basename(caminho_backup)
+        self.status_bar.showMessage(f"[Backup Automatico] Copia gerada: {nome_arquivo}", 4000)
