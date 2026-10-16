@@ -18,6 +18,7 @@ from componentes.janela_detalhes import JanelaDetalhesFilme
 class SinaisImportacao(QObject):
 
     concluido = Signal(int, str)
+    progresso = Signal(int)
     erro = Signal(str)
 
 # Thread de trabalho para processar a importacao em lote sem travar a GUI.
@@ -32,9 +33,8 @@ class TrabalhadorImportacao(QRunnable):
     @Slot()
     def run(self):
         try:
-            # Pausa simulada para mostrar que a janela nao congela
-            time.sleep(2)
-            quantidade = self.repositorio.importar_lote(self.caminho)
+            # Conecta o sinal de progresso como callback do leitor de arquivo
+            quantidade = self.repositorio.importar_lote(self.caminho, callback_progresso = self.sinais.progresso.emit)
             self.sinais.concluido.emit(quantidade, self.caminho)
         except Exception as erro:
             self.sinais.erro.emit(str(erro))
@@ -201,9 +201,10 @@ class JanelaPrincipal(QMainWindow):
 
         layout_catalogo.addWidget(self.tabela_filmes)
 
-        # Barra de Disponibilidade
+        # Barra de Progresso / Disponibilidade
         layout_progresso = QHBoxLayout()
-        layout_progresso.addWidget(QLabel("Taxa de Disponibilidade do Acervo:"))
+        self.label_progresso = QLabel("Taxa de Disponibilidade do Acervo:")
+        layout_progresso.addWidget(self.label_progresso)
         self.barra_progresso = QProgressBar()
         self.barra_progresso.setRange(0, 100)
         self.barra_progresso.setValue(0)
@@ -369,46 +370,58 @@ class JanelaPrincipal(QMainWindow):
         self.status_bar.showMessage(f"Catalogo exportado: {quantidade} filme(s).", 3000)
 
     def _importar_catalogo_lote(self):
-       # Abre diretamente na pasta do projeto e permite selecionar qualquer arquivo
-        caminho, _ = QFileDialog.getOpenFileName(self, "Importar Filmes em Lote",
-            os.getcwd(),  # Abre direto na raiz do projeto onde o arquivo está
-            "Todos os Arquivos (*.*);;Arquivos de Texto (*.txt);;Arquivos CSV (*.csv)"
-        )
+        # Dialogo para escolher arquivo CSV ou TXT
+        caminho, _ = QFileDialog.getOpenFileName(self, "Importar Filmes em Lote", os.getcwd(),
+            "Todos os Arquivos (*.*);;Arquivos de Texto (*.txt);;Arquivos CSV (*.csv)")
 
         if not caminho:
             self.status_bar.showMessage("Importacao cancelada.", 3000)
             return
 
-        # Desabilita os botoes de importacao enquanto a thread esta rodando
+        # Prepara a interface para exibir o progresso da thread
         self.btn_importar.setEnabled(False)
         self.acao_importar.setEnabled(False)
-        self.status_bar.showMessage("Importando filmes em segundo plano (Thread em execução)...")
+        self.label_progresso.setText("Progresso da Importacao em Lote:")
+        self.barra_progresso.setValue(0)
+        self.status_bar.showMessage("Importando filmes em segundo plano (Thread ativa)...")
 
-        # Instancia o Worker e inicia a execucao paralela no QThreadPool
+        # Instancia o Worker e conecta os sinais aos slots da interface
         trabalhador = TrabalhadorImportacao(self.repositorio, caminho)
+        trabalhador.sinais.progresso.connect(self._slot_progresso_importacao)
         trabalhador.sinais.concluido.connect(self._slot_importacao_concluida)
         trabalhador.sinais.erro.connect(self._slot_erro_importacao)
         self.threadpool.start(trabalhador)
 
+    def _slot_progresso_importacao(self, valor):
+        # Atualiza a barra de progresso em tempo real conforme a thread processa cada linha
+        self.barra_progresso.setValue(valor)
+        self.status_bar.showMessage(f"Importando filmes em lote... {valor}%")
+
     def _slot_importacao_concluida(self, quantidade, caminho):
-        # Reabilita os botoes ao finalizar a thread
         self.btn_importar.setEnabled(True)
         self.acao_importar.setEnabled(True)
+        self.label_progresso.setText("Taxa de Disponibilidade do Acervo:")
 
         if quantidade > 0:
             self._atualizar_tabela()
-            QMessageBox.information(self,"Importacao Concluida", f"{quantidade} filme(s) importado(s) com sucesso a partir de:\n{os.path.abspath(caminho)}")
+            QMessageBox.information(self, "Importacao Concluida",
+                f"{quantidade} filme(s) importado(s) com sucesso a partir de:\n{os.path.abspath(caminho)}"
+            )
             self.status_bar.showMessage(f"Importacao concluida: {quantidade} filme(s) adicionado(s).", 3000)
         else:
-            QMessageBox.warning(self,"Nenhum Filme Importado", "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo.")
+            self._atualizar_tabela()
+            QMessageBox.warning(self, "Nenhum Filme Importado",
+                "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo."
+            )
             self.status_bar.showMessage("Nenhum filme foi importado.", 3000)
 
     def _slot_erro_importacao(self, mensagem_erro):
-        # Reabilita os botoes caso ocorra erro na thread
         self.btn_importar.setEnabled(True)
         self.acao_importar.setEnabled(True)
+        self.label_progresso.setText("Taxa de Disponibilidade do Acervo:")
+        self._atualizar_tabela()
 
-        QMessageBox.critical(self,"Erro na Importacao", f"Ocorreu um erro ao processar o arquivo:\n{mensagem_erro}")
+        QMessageBox.critical(self, "Erro na Importacao", f"Ocorreu um erro ao processar o arquivo:\n{mensagem_erro}")
         self.status_bar.showMessage("Falha ao importar filmes.", 3000)
 
     def _slot_busca_rapida(self, texto):

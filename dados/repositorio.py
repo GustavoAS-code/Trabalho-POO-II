@@ -1,6 +1,7 @@
 ﻿import csv
 import json
 import os
+import time
 
 class RepositorioFilmes:
     
@@ -145,89 +146,92 @@ class RepositorioFilmes:
 
         return len(filmes)
 
-    def importar_lote(self, caminho): # Le um arquivo de texto (.txt ou .csv) e cadastra multiplos filmes em lote.
-    
+    def importar_lote(self, caminho, callback_progresso=None): # Le um arquivo de texto e cadastra multiplos filmes em lote.
+        
+        # Notifica a porcentagem a cada linha processada.
+
         if not os.path.exists(caminho):
             raise FileNotFoundError(f"Arquivo '{caminho}' nao encontrado.")
 
         filmes_importados = 0
 
-        # utf-8-sig trata tanto arquivos UTF-8 padrao quanto criados pelo Windows/Excel
         with open(caminho, 'r', encoding='utf-8-sig') as arquivo:
-            primeira_linha = arquivo.readline()
-            if not primeira_linha:
-                return 0
+            linhas = [linha for linha in arquivo if linha.strip()]
 
-            # Detecta se o separador e ';' ou ','
-            delimitador = ';' if ';' in primeira_linha else ','
-            arquivo.seek(0)
+        if not linhas:
+            if callback_progresso:
+                callback_progresso(100)
+            return 0
 
-            leitor = csv.reader(arquivo, delimiter=delimitador)
+        delimitador = ';' if ';' in linhas[0] else ','
+        leitor = csv.reader(linhas, delimiter=delimitador)
+        linhas_csv = list(leitor)
+        total_linhas = len(linhas_csv)
 
-            for linha in leitor:
-                # Pula linhas vazias
-                if not linha or not any(campo.strip() for campo in linha):
+        for i, linha in enumerate(linhas_csv):
+            # Pausa para visualizacao do carregamento na interface
+            time.sleep(0.3)
+
+            # Calcula e emite a porcentagem para a barra de progresso da interface
+            if callback_progresso and total_linhas > 0:
+                porcentagem = int(((i + 1) / total_linhas) * 100)
+                callback_progresso(porcentagem)
+
+            if not linha or not any(campo.strip() for campo in linha):
+                continue
+
+            primeira_coluna = linha[0].strip().lower()
+            if primeira_coluna in ["id", "titulo", "título"]:
+                continue
+
+            if len(linha) >= 9:
+                colunas = linha[1:]
+            elif len(linha) >= 8:
+                colunas = linha
+            else:
+                continue
+
+            try:
+                titulo = colunas[0].strip()
+                genero = colunas[1].strip()
+                ano = int(colunas[2].strip())
+                
+                preco_str = colunas[3].replace("R$", "").replace(" ", "").replace(",", ".").strip()
+                preco = float(preco_str)
+
+                midia = colunas[4].strip()
+                if midia not in ["DVD", "Blu-ray", "Digital"]:
+                    midia = "DVD"
+
+                disp_str = colunas[5].strip().lower()
+                disponivel = disp_str in ["disponivel", "disponível", "true", "1", "sim", "yes"]
+
+                nota_str = colunas[6].replace("/10", "").strip()
+                avaliacao = int(float(nota_str))
+
+                sinopse = colunas[7].strip() if len(colunas) > 7 else ""
+
+                if not titulo:
                     continue
 
-                # Pula cabecalho
-                primeira_coluna = linha[0].strip().lower()
-                if primeira_coluna in ["id", "titulo", "título"]:
-                    continue
+                novo_filme = {
+                    "id": self._proximo_id,
+                    "titulo": titulo,
+                    "genero": genero,
+                    "ano": ano,
+                    "preco": preco,
+                    "midia": midia,
+                    "disponivel": disponivel,
+                    "avaliacao": avaliacao,
+                    "sinopse": sinopse
+                }
+                self._filmes.append(novo_filme)
+                self._proximo_id += 1
+                filmes_importados += 1
 
-                # Se o arquivo tiver a coluna ID (9 colunas como o exportado), comeca da coluna 1
-                # Se nao tiver coluna ID (8 colunas), comeca da coluna 0
-                if len(linha) >= 9:
-                    colunas = linha[1:]
-                elif len(linha) >= 8:
-                    colunas = linha
-                else:
-                    continue  # Linha incompleta, ignora
+            except (ValueError, IndexError):
+                continue
 
-                try:
-                    titulo = colunas[0].strip()
-                    genero = colunas[1].strip()
-                    ano = int(colunas[2].strip())
-                    
-                    # Converte formato de preco (remove 'R$', espacos e troca virgula por ponto)
-                    preco_str = colunas[3].replace("R$", "").replace(" ", "").replace(",", ".").strip()
-                    preco = float(preco_str)
-
-                    midia = colunas[4].strip()
-                    if midia not in ["DVD", "Blu-ray", "Digital"]:
-                        midia = "DVD"
-
-                    disp_str = colunas[5].strip().lower()
-                    disponivel = disp_str in ["disponivel", "disponível", "true", "1", "sim", "yes"]
-
-                    nota_str = colunas[6].replace("/10", "").strip()
-                    avaliacao = int(float(nota_str))
-
-                    sinopse = colunas[7].strip() if len(colunas) > 7 else ""
-
-                    if not titulo:
-                        continue
-
-                    # Cria o novo filme garantindo ID sequencial unico
-                    novo_filme = {
-                        "id": self._proximo_id,
-                        "titulo": titulo,
-                        "genero": genero,
-                        "ano": ano,
-                        "preco": preco,
-                        "midia": midia,
-                        "disponivel": disponivel,
-                        "avaliacao": avaliacao,
-                        "sinopse": sinopse
-                    }
-                    self._filmes.append(novo_filme)
-                    self._proximo_id += 1
-                    filmes_importados += 1
-
-                except (ValueError, IndexError):
-                    # Se alguma linha tiver formato invalido, apenas ignora e pula para a proxima
-                    continue
-
-        # Salva o JSON no disco apenas uma vez ao final de toda a leitura
         if filmes_importados > 0:
             self._salvar_dados()
 
