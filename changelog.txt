@@ -15,3 +15,18 @@ Atualização 3: Importação em Lote de Arquivos (TXT e CSV) - Luan Cristian
 - Criação do método `importar_lote` para leitura e inserção automatizada de muitos filmes a partir de arquivos externos.
 - Suporte a arquivos nos formatos TXT e CSV com detecção dinâmica de vírgula ou ponto e vírgula.
 - Tratamento de exceções para linhas incompletas ou erradas, garantindo a integridade dos dados e atualização imediata da tabela e da barra de disponibilidade do acervo.
+
+Atualização 4: Processamento Assíncrono com QThreadPool e QRunnable - Gustavo Antonio
+- Criação do worker TrabalhadorImportacao herdando de QRunnable e orquestrado por QThreadPool para executar a leitura e carga de arquivos em lote em segundo plano.
+- Desacoplamento da leitura de dados da thread principal da interface gráfica (GUI), impedindo travamentos ou congelamentos da janela durante operações de I/O em arquivos grandes.
+- Estruturação da classe SinaisImportacao com sinais Qt customizados (Signal e Slot) para emissão segura do término do processamento e captura de exceções.
+
+Atualização 5: Integração da Thread com Barra de Progresso em Tempo Real - Luan Cristian
+- Refatoração do método importar_lote na classe RepositorioFilmes para suportar função de callback de notificação de progresso a cada linha processada.
+- Adição do sinal progresso = Signal(int) para comunicação thread-safe da porcentagem calculada (0 a 100%) da thread de trabalho para a interface principal.
+- Atualização dinâmica da QProgressBar e da QStatusBar na JanelaPrincipal em tempo de execução, restaurando o indicador para a taxa de disponibilidade do acervo ao término da rotina.
+
+Atualização 6: Rotina de Backup Automático em Background - Rian de Oliveira
+- Implementação do método fazer_backup no repositório para cópia e preservação do arquivo dados.json na pasta backups com marcações de data e hora (timestamp).
+- Configuração de thread secundária em segundo plano com o módulo nativo threading.Thread em modo daemon (daemon=True), garantindo finalização limpa e automática ao fechar a aplicação.
+- Integração da rotina temporizada com o sinal SinaisBackup para notificação discreta na barra de status a cada ciclo de salvamento sem interferir na usabilidade do sistema.
