@@ -102,18 +102,6 @@ class JanelaPrincipal(QMainWindow):
         self.acao_remover.setShortcut(QKeySequence.StandardKey.Delete)
         self.acao_remover.triggered.connect(self._remover_filme_selecionado)
 
-        # Acao Exportar CSV
-        self.acao_exportar = QAction("Exportar CSV", self)
-        self.acao_exportar.setStatusTip("Exportar todo o catalogo de filmes para um arquivo CSV")
-        self.acao_exportar.setShortcut(QKeySequence("Ctrl+E"))
-        self.acao_exportar.triggered.connect(self._exportar_catalogo_csv)
-
-        # Acao Importar CSV
-        self.acao_importar = QAction("Importar em Lote", self)
-        self.acao_importar.setStatusTip("Importar filmes a partir de um arquivo TXT ou CSV")
-        self.acao_importar.setShortcut(QKeySequence("Ctrl+I"))
-        self.acao_importar.triggered.connect(self._importar_catalogo_lote)
-
         # Acao Alternar Visualizacao: Catalogo
         self.acao_ver_catalogo = QAction("Ver Catalogo de Filmes", self)
         self.acao_ver_catalogo.setStatusTip("Exibir a tabela de catalogo")
@@ -144,8 +132,6 @@ class JanelaPrincipal(QMainWindow):
         toolbar.addAction(self.acao_novo)
         toolbar.addAction(self.acao_detalhes)
         toolbar.addAction(self.acao_remover)
-        toolbar.addAction(self.acao_exportar)
-        toolbar.addAction(self.acao_importar)
 
         toolbar.addSeparator()
 
