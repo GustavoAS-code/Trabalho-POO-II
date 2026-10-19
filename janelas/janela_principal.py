@@ -424,7 +424,7 @@ class JanelaPrincipal(QMainWindow):
         else:
             self._atualizar_tabela()
             QMessageBox.warning(self, "Nenhum Filme Importado",
-                "Nenhum registro valido foi encontrado no arquivo selecionado. Verifique o formato do arquivo."
+                "Nenhum registro valido foi encontrado no arquivo selecionado (Verifique o formato do arquivo) ou os filmes já existem no catálogo."
             )
             self.status_bar.showMessage("Nenhum filme foi importado.", 3000)
 

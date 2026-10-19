@@ -232,9 +232,11 @@ class RepositorioFilmes:
                 existe = False
                 novo_filmeLimpo = novo_filme.copy()
                 novo_filmeLimpo.pop("id", None)
+                novo_filmeLimpo.pop("disponivel", None)
                 for teste in self._filmes:
                     testeLimpo = teste.copy()
                     testeLimpo.pop("id", None)
+                    testeLimpo.pop("disponivel", None)
                     if novo_filmeLimpo == testeLimpo:
                         existe = True
                         break
