@@ -227,9 +227,21 @@ class RepositorioFilmes:
                     "avaliacao": avaliacao,
                     "sinopse": sinopse
                 }
-                self._filmes.append(novo_filme)
-                self._proximo_id += 1
-                filmes_importados += 1
+
+                # Verifica se o filme já existe no catálogo
+                existe = False
+                novo_filmeLimpo = novo_filme.copy()
+                novo_filmeLimpo.pop("id", None)
+                for teste in self._filmes:
+                    testeLimpo = teste.copy()
+                    testeLimpo.pop("id", None)
+                    if novo_filmeLimpo == testeLimpo:
+                        existe = True
+                        break
+                if not existe:
+                    self._filmes.append(novo_filme)
+                    self._proximo_id += 1
+                    filmes_importados += 1
 
             except (ValueError, IndexError):
                 continue

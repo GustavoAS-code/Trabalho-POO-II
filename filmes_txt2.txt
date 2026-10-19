@@ -1,3 +1,0 @@
-Titulo;Genero;Ano;Preco;Midia;Status;Nota;Sinopse
-Truque de Mestre;Drama;2013;7.50;Blu-ray;Disponivel;8;Ilusionistas roubam bancos e distribuem o dinheiro para o público enquanto despistam o FBI.
-Gente Grande;Comedia;2010;6.00;DVD;Disponivel;7;Amigos de infância se reencontram anos depois para passar um fim de semana juntos com suas famílias.
