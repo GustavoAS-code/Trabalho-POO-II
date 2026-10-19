@@ -1,0 +1,4 @@
+Titulo;Genero;Ano;Preco;Midia;Status;Nota;Sinopse
+John Wick;Acao;2014;8.50;Blu-ray;Disponivel;9;Um assassino aposentado busca vingança contra os homens que tiraram tudo dele.
+Velozes e Furiosos;Acao;2001;7.00;DVD;Disponivel;8;Um policial infiltrado no submundo dos rachas se envolve mais do que deveria.
+Vingadores;Acao;2012;9.50;Blu-ray;Alugado;9;Heróis da Terra se unem para combater uma ameaça global liderada por Loki.
