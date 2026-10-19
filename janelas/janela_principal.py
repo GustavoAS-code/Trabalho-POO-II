@@ -379,7 +379,7 @@ class JanelaPrincipal(QMainWindow):
 
         # Prepara a interface para exibir o progresso da thread
         self.btn_importar.setEnabled(False)
-        self.acao_importar.setEnabled(False)
+        #self.acao_importar.setEnabled(False)
         self.label_progresso.setText("Progresso da Importacao em Lote:")
         self.barra_progresso.setValue(0)
         self.status_bar.showMessage("Importando filmes em segundo plano (Thread ativa)...")
@@ -398,7 +398,7 @@ class JanelaPrincipal(QMainWindow):
 
     def _slot_importacao_concluida(self, quantidade, caminho):
         self.btn_importar.setEnabled(True)
-        self.acao_importar.setEnabled(True)
+        #self.acao_importar.setEnabled(True)
         self.label_progresso.setText("Taxa de Disponibilidade do Acervo:")
 
         if quantidade > 0:
@@ -416,7 +416,7 @@ class JanelaPrincipal(QMainWindow):
 
     def _slot_erro_importacao(self, mensagem_erro):
         self.btn_importar.setEnabled(True)
-        self.acao_importar.setEnabled(True)
+        #self.acao_importar.setEnabled(True)
         self.label_progresso.setText("Taxa de Disponibilidade do Acervo:")
         self._atualizar_tabela()
 
