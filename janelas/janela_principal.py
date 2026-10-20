@@ -458,11 +458,16 @@ class JanelaPrincipal(QMainWindow):
                 self._abrir_janela_detalhes()
         super().keyPressEvent(event)
 
-    def _rotina_backup_automatico(self): # Rotina executada em paralelo que realiza o backup do arquivo dados.json a cada intervalo de tempo.
-    
-        # Aguarda 600 segundos apos iniciar o programa para realizar o primeiro backup
-        time.sleep(600)
+def _rotina_backup_automatico(self):
+        # Rotina em segundo plano (thread nativa) para backup periodico
         
+        # Aguarda 60 segundos para o PRIMEIRO backup (interrompivel caso o app feche)
+        for _ in range(60):
+            if not self._backup_ativo:
+                return
+            time.sleep(1)
+
+        # Laco continuo para os backups subsequentes a cada 10 minutos
         while self._backup_ativo:
             try:
                 caminho = self.repositorio.fazer_backup()
@@ -471,14 +476,8 @@ class JanelaPrincipal(QMainWindow):
             except Exception as e:
                 print(f"[Erro no Backup Automatico]: {e}")
 
-            # Intervalo de 60 segundos entre cada backup em background
-            # Verifica a cada segundo se o app foi encerrado para interromper o sleep
-            for _ in range(60):
+            # Aguarda 10 minutos (600 segundos) entre os proximos backups
+            for _ in range(600):
                 if not self._backup_ativo:
                     break
                 time.sleep(1)
-
-    def _slot_backup_concluido(self, caminho_backup):
-        # Slot que roda na thread principal e avisa na barra de status que o backup ocorreu.
-        nome_arquivo = os.path.basename(caminho_backup)
-        self.status_bar.showMessage(f"[Backup Automatico] Copia gerada: {nome_arquivo}", 4000)
