@@ -460,8 +460,8 @@ class JanelaPrincipal(QMainWindow):
 
     def _rotina_backup_automatico(self): # Rotina executada em paralelo que realiza o backup do arquivo dados.json a cada intervalo de tempo.
     
-        # Aguarda 10 segundos apos iniciar o programa para realizar o primeiro backup
-        time.sleep(10)
+        # Aguarda 600 segundos apos iniciar o programa para realizar o primeiro backup
+        time.sleep(600)
         
         while self._backup_ativo:
             try:
