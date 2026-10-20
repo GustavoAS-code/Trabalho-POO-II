@@ -458,7 +458,7 @@ class JanelaPrincipal(QMainWindow):
                 self._abrir_janela_detalhes()
         super().keyPressEvent(event)
 
-def _rotina_backup_automatico(self):
+    def _rotina_backup_automatico(self):
         # Rotina em segundo plano (thread nativa) para backup periodico
         
         # Aguarda 60 segundos para o PRIMEIRO backup (interrompivel caso o app feche)
@@ -481,3 +481,8 @@ def _rotina_backup_automatico(self):
                 if not self._backup_ativo:
                     break
                 time.sleep(1)
+
+    def _slot_backup_concluido(self, caminho_backup):
+        # Slot que roda na thread principal e avisa na barra de status que o backup ocorreu.
+        nome_arquivo = os.path.basename(caminho_backup)
+        self.status_bar.showMessage(f"[Backup Automatico] Copia gerada: {nome_arquivo}", 4000)
