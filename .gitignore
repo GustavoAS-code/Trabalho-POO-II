@@ -1,6 +1,18 @@
+# Ambiente virtual e Python
 venv/
+.venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+# Variaveis de ambiente e segredos
+.env
+# Dados locais temporarios e backups gerados em execucao
 dados.json
 backups/
-TestesCSV/*
+*.csv
+!TestesCSV/*.csv
+# IDEs e Sistema Operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
