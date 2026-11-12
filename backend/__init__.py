@@ -1,0 +1,1 @@
+# Pacote backend: API Flask e modelos ORM SQLAlchemy
