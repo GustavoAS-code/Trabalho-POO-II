@@ -32,7 +32,6 @@ Atualização 6: Rotina de Backup Automático em Background - Rian de Oliveira
 - Integração da rotina temporizada com o sinal SinaisBackup para notificação discreta na barra de status a cada ciclo de salvamento sem interferir na usabilidade do sistema.
 
 CHANGELOG - TRABALHO 03 (ENTREGA PARCIAL I - 13/11/2026)
-SISTEMA DE LOCADORA DE FILMES - POO II
 
 Atualizacao 1: Infraestrutura Docker e Banco de Dados PostgreSQL - Gustavo Antonio
 - Criacao do arquivo docker-compose.yml com servico postgres:16-alpine, volume persistente e healthcheck.
