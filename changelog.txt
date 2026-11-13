@@ -30,3 +30,35 @@ Atualização 6: Rotina de Backup Automático em Background - Rian de Oliveira
 - Implementação do método fazer_backup no repositório para cópia e preservação do arquivo dados.json na pasta backups com marcações de data e hora (timestamp).
 - Configuração de thread secundária em segundo plano com o módulo nativo threading.Thread em modo daemon (daemon=True), garantindo finalização limpa e automática ao fechar a aplicação.
 - Integração da rotina temporizada com o sinal SinaisBackup para notificação discreta na barra de status a cada ciclo de salvamento sem interferir na usabilidade do sistema.
+
+CHANGELOG - TRABALHO 03 (ENTREGA PARCIAL I - 13/11/2026)
+SISTEMA DE LOCADORA DE FILMES - POO II
+
+Atualizacao 1: Infraestrutura Docker e Banco de Dados PostgreSQL - Gustavo Antonio
+- Criacao do arquivo docker-compose.yml com servico postgres:16-alpine, volume persistente e healthcheck.
+- Criacao do arquivo .env.example para configuracao de credenciais, portas (5432 e 5000) e URL remota.
+- Adicao de backend/requirements.txt e atualizacao do .gitignore para ambiente de containerizacao.
+
+Atualizacao 2: Modelagem Relacional (3FN) e ORM SQLAlchemy - Luan Cristan
+- Configuracao da conexao SQLAlchemy com PostgreSQL em backend/database.py.
+- Criacao dos modelos ORM em backend/models.py: Genero, Filme e HistoricoLocacao com chaves estrangeiras e integridade
+referencial.
+- Implementacao de backend/seed.py para criacao automatica do esquema e carga inicial dos dados.
+
+Atualizacao 3: Servidor Web Flask e Rotas de Consulta e Cadastro - Rian de Oliveira
+- Estruturacao da aplicacao REST em backend/app.py com Flask e SQLAlchemy.
+- Implementacao dos endpoints GET /health, GET /filmes, GET /filmes/<id> e POST /filmes.
+
+Atualizacao 4: Rotas Transacionais de Locacao, Historico, Exclusao e Lote - Gustavo Antonio
+- Implementacao de PATCH /filmes/<id>/status atualizando disponibilidade e gravando HistoricoLocacao em uma unica transacao
+ACID.
+- Criacao das rotas GET /filmes/<id>/historico, DELETE /filmes/<id> e POST /filmes/lote com prevencao de duplicidade.
+
+Atualizacao 5: Validacao de Dominios e Tratamento Global de Erros HTTP - Luan Cristan
+- Adicao da funcao validar_dados_filme em backend/app.py garantindo restricoes de ano, preco, midia e avaliacao.
+- Implementacao de errorhandlers globais (404, 405, 500) com rollback automatico e suporte a host 0.0.0.0 para acesso
+remoto.
+
+Atualizacao 6: Testes Automatizados da API e Documentacao Inicial - Rian de Oliveira
+- Criacao do script tests/test_api.py validando ciclo CRUD, transacao ACID e validacoes HTTP via requests.
+- Atualizacao inicial do Instrucoes.md com passo a passo para subir o PostgreSQL no Docker e a API Flask.
