@@ -6,6 +6,49 @@ from backend.database import db, montar_database_uri
 from backend.models import Filme, HistoricoLocacao
 from backend.seed import obter_ou_criar_genero, popular_banco_inicial
 
+MIDIAS_VALIDAS = {"DVD", "Blu-ray", "Digital"}
+
+
+def validar_dados_filme(dados):
+    # Valida os dominios dos atributos conforme o esquema do sistema.
+    if not isinstance(dados, dict):
+        return None, "Corpo da requisicao deve ser um JSON valido."
+
+    titulo = str(dados.get("titulo", "")).strip()
+    if not titulo:
+        return None, "O campo 'titulo' nao pode ficar vazio."
+
+    try:
+        ano = int(dados.get("ano", 2024))
+        preco = round(float(dados.get("preco", 8.50)), 2)
+        avaliacao = int(dados.get("avaliacao", 8))
+    except (ValueError, TypeError):
+        return None, "Campos numericos (ano, preco, avaliacao) possuem formato invalido."
+
+    if not (1900 <= ano <= 2030):
+        return None, "O campo 'ano' deve estar entre 1900 e 2030."
+    if not (1.0 <= preco <= 100.0):
+        return None, "O campo 'preco' deve estar entre R$ 1,00 e R$ 100,00."
+    if not (0 <= avaliacao <= 10):
+        return None, "O campo 'avaliacao' deve estar entre 0 e 10."
+
+    midia = str(dados.get("midia", "DVD")).strip()
+    if midia not in MIDIAS_VALIDAS:
+        return None, f"Midia invalida. Valores permitidos: {', '.join(sorted(MIDIAS_VALIDAS))}."
+
+    limpo = {
+        "titulo": titulo,
+        "genero": str(dados.get("genero", "Outros")).strip() or "Outros",
+        "ano": ano,
+        "preco": preco,
+        "midia": midia,
+        "disponivel": bool(dados.get("disponivel", True)),
+        "avaliacao": avaliacao,
+        "sinopse": str(dados.get("sinopse", "")).strip(),
+    }
+    return limpo, None
+
+
 def criar_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = montar_database_uri()
@@ -13,9 +56,23 @@ def criar_app():
     app.json.ensure_ascii = False
 
     db.init_app(app)
+
     with app.app_context():
         popular_banco_inicial()
-    
+
+    @app.errorhandler(404)
+    def erro_404(_erro):
+        return jsonify({"erro": "Recurso nao encontrado na API."}), 404
+
+    @app.errorhandler(405)
+    def erro_405(_erro):
+        return jsonify({"erro": "Metodo HTTP nao permitido para esta rota."}), 405
+
+    @app.errorhandler(Exception)
+    def erro_inesperado(erro):
+        db.session.rollback()
+        return jsonify({"erro": f"Erro interno do servidor: {erro}"}), 500
+
     @app.route("/health", methods=["GET"])
     def health_check():
         try:
@@ -23,12 +80,12 @@ def criar_app():
             return jsonify({"status": "ok", "banco": "conectado"}), 200
         except Exception as erro:
             return jsonify({"status": "erro", "detalhes": str(erro)}), 503
-    
+
     @app.route("/filmes", methods=["GET"])
     def listar_filmes():
         filmes = Filme.query.order_by(Filme.id.asc()).all()
         return jsonify([f.to_dict() for f in filmes]), 200
-    
+
     @app.route("/filmes/<int:filme_id>", methods=["GET"])
     def buscar_filme(filme_id):
         filme = db.session.get(Filme, filme_id)
@@ -38,52 +95,51 @@ def criar_app():
 
     @app.route("/filmes", methods=["POST"])
     def cadastrar_filme():
-        dados = request.get_json(silent=True) or {}
-        titulo = str(dados.get("titulo", "")).strip()
-        if not titulo:
-            return jsonify({"erro": "O campo 'titulo' e obrigatorio."}), 400
+        dados = request.get_json(silent=True)
+        limpo, msg_erro = validar_dados_filme(dados)
+        if msg_erro:
+            return jsonify({"erro": msg_erro}), 400
+
         try:
-            genero_obj = obter_ou_criar_genero(dados.get("genero", "Outros"))
+            genero_obj = obter_ou_criar_genero(limpo["genero"])
             novo_filme = Filme(
-                titulo=titulo,
+                titulo=limpo["titulo"],
                 genero_id=genero_obj.id,
-                ano=int(dados.get("ano", 2024)),
-                preco=float(dados.get("preco", 8.50)),
-                midia=str(dados.get("midia", "DVD")).strip(),
-                disponivel=bool(dados.get("disponivel", True)),
-                avaliacao=int(dados.get("avaliacao", 8)),
-                sinopse=str(dados.get("sinopse", "")).strip(),
+                ano=limpo["ano"],
+                preco=limpo["preco"],
+                midia=limpo["midia"],
+                disponivel=limpo["disponivel"],
+                avaliacao=limpo["avaliacao"],
+                sinopse=limpo["sinopse"],
             )
             db.session.add(novo_filme)
             db.session.commit()
             return jsonify(novo_filme.to_dict()), 201
-        except (ValueError, TypeError) as erro:
-            db.session.rollback()
-            return jsonify({"erro": f"Dados invalidos: {erro}"}), 400
         except Exception as erro:
             db.session.rollback()
-            return jsonify({"erro": f"Erro interno ao salvar filme: {erro}"}), 500
+            return jsonify({"erro": f"Erro ao salvar filme: {erro}"}), 500
 
     @app.route("/filmes/<int:filme_id>/status", methods=["PATCH"])
     def alterar_status_filme(filme_id):
         filme = db.session.get(Filme, filme_id)
         if not filme:
             return jsonify({"erro": f"Filme ID {filme_id} nao encontrado."}), 404
+
         dados = request.get_json(silent=True) or {}
-        if "disponivel" not in dados:
-            return jsonify({"erro": "Informe o campo booleano 'disponivel'."}), 400
+        if "disponivel" not in dados or not isinstance(dados["disponivel"], bool):
+            return jsonify({"erro": "Informe o campo booleano 'disponivel' (true/false)."}), 400
+
         try:
-            novo_status = bool(dados["disponivel"])
+            novo_status = dados["disponivel"]
             filme.disponivel = novo_status
             acao = "DEVOLUCAO" if novo_status else "ALUGUEL"
-            registro = HistoricoLocacao(filme_id=filme.id, acao=acao)
-            db.session.add(registro)
+            db.session.add(HistoricoLocacao(filme_id=filme.id, acao=acao))
             db.session.commit()
             return jsonify(filme.to_dict()), 200
         except Exception as erro:
             db.session.rollback()
             return jsonify({"erro": f"Falha na transacao de locacao: {erro}"}), 500
-        
+
     @app.route("/filmes/<int:filme_id>/historico", methods=["GET"])
     def listar_historico_filme(filme_id):
         filme = db.session.get(Filme, filme_id)
@@ -110,6 +166,7 @@ def criar_app():
         lista = dados.get("filmes", [])
         if not isinstance(lista, list):
             return jsonify({"erro": "O campo 'filmes' deve ser uma lista."}), 400
+
         try:
             existentes = Filme.query.all()
             chaves_existentes = {
@@ -124,59 +181,49 @@ def criar_app():
                 )
                 for f in existentes
             }
+
             importados = []
             for item in lista:
-                titulo = str(item.get("titulo", "")).strip()
-                if not titulo:
+                limpo, msg_erro = validar_dados_filme(item)
+                if msg_erro:
                     continue
-                genero_nome = str(item.get("genero", "Outros")).strip()
-                ano = int(item.get("ano", 2024))
-                preco = round(float(item.get("preco", 8.50)), 2)
-                midia = str(item.get("midia", "DVD")).strip()
-                if midia not in ["DVD", "Blu-ray", "Digital"]:
-                    midia = "DVD"
-                avaliacao = int(item.get("avaliacao", 8))
-                sinopse = str(item.get("sinopse", "")).strip()
-                disponivel = bool(item.get("disponivel", True))
+
                 chave = (
-                    titulo.lower(),
-                    genero_nome.lower(),
-                    ano,
-                    preco,
-                    midia,
-                    avaliacao,
-                    sinopse,
+                    limpo["titulo"].lower(),
+                    limpo["genero"].lower(),
+                    limpo["ano"],
+                    limpo["preco"],
+                    limpo["midia"],
+                    limpo["avaliacao"],
+                    limpo["sinopse"],
                 )
                 if chave in chaves_existentes:
                     continue
-                genero_obj = obter_ou_criar_genero(genero_nome)
+
+                genero_obj = obter_ou_criar_genero(limpo["genero"])
                 novo_filme = Filme(
-                    titulo=titulo,
+                    titulo=limpo["titulo"],
                     genero_id=genero_obj.id,
-                    ano=ano,
-                    preco=preco,
-                    midia=midia,
-                    disponivel=disponivel,
-                    avaliacao=avaliacao,
-                    sinopse=sinopse,
+                    ano=limpo["ano"],
+                    preco=limpo["preco"],
+                    midia=limpo["midia"],
+                    disponivel=limpo["disponivel"],
+                    avaliacao=limpo["avaliacao"],
+                    sinopse=limpo["sinopse"],
                 )
                 db.session.add(novo_filme)
                 chaves_existentes.add(chave)
                 importados.append(novo_filme)
+
             db.session.commit()
             return jsonify({
                 "importados": len(importados),
                 "filmes": [f.to_dict() for f in importados],
             }), 201 if importados else 200
-        except (ValueError, TypeError) as erro:
-            db.session.rollback()
-            return jsonify({"erro": f"Registro invalido no lote: {erro}"}), 400
         except Exception as erro:
             db.session.rollback()
             return jsonify({"erro": f"Erro ao importar lote: {erro}"}), 500
 
-    
-            
     return app
 
 
