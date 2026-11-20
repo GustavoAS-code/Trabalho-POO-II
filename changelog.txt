@@ -33,31 +33,59 @@ Atualização 6: Rotina de Backup Automático em Background - Rian de Oliveira
 
 CHANGELOG - TRABALHO 03 (ENTREGA PARCIAL I - 13/11/2026)
 
-Atualizacao 1: Infraestrutura Docker e Banco de Dados PostgreSQL - Gustavo Antonio
-- Criacao do arquivo docker-compose.yml com servico postgres:16-alpine, volume persistente e healthcheck.
-- Criacao do arquivo .env.example para configuracao de credenciais, portas (5432 e 5000) e URL remota.
-- Adicao de backend/requirements.txt e atualizacao do .gitignore para ambiente de containerizacao.
+Atualização 1: Infraestrutura Docker e Banco de Dados PostgreSQL - Gustavo Antonio
+- Criação do arquivo docker-compose.yml com serviço postgres:16-alpine, volume persistente e healthcheck.
+- Criação do arquivo .env.example para configuração de credenciais, portas (5432 e 5000) e URL remota.
+- Adição de backend/requirements.txt e atualização do .gitignore para ambiente de containerização.
 
-Atualizacao 2: Modelagem Relacional (3FN) e ORM SQLAlchemy - Luan Cristan
-- Configuracao da conexao SQLAlchemy com PostgreSQL em backend/database.py.
-- Criacao dos modelos ORM em backend/models.py: Genero, Filme e HistoricoLocacao com chaves estrangeiras e integridade
+Atualização 2: Modelagem Relacional (3FN) e ORM SQLAlchemy - Luan Cristan
+- Configuração da conexão SQLAlchemy com PostgreSQL em backend/database.py.
+- Criação dos modelos ORM em backend/models.py: Genero, Filme e HistoricoLocacao com chaves estrangeiras e integridade
 referencial.
-- Implementacao de backend/seed.py para criacao automatica do esquema e carga inicial dos dados.
+- Implementação de backend/seed.py para criação automática do esquema e carga inicial dos dados.
 
-Atualizacao 3: Servidor Web Flask e Rotas de Consulta e Cadastro - Rian de Oliveira
-- Estruturacao da aplicacao REST em backend/app.py com Flask e SQLAlchemy.
-- Implementacao dos endpoints GET /health, GET /filmes, GET /filmes/<id> e POST /filmes.
+Atualização 3: Servidor Web Flask e Rotas de Consulta e Cadastro - Rian de Oliveira
+- Estruturação da aplicação REST em backend/app.py com Flask e SQLAlchemy.
+- Implementação dos endpoints GET /health, GET /filmes, GET /filmes/<id> e POST /filmes.
 
-Atualizacao 4: Rotas Transacionais de Locacao, Historico, Exclusao e Lote - Gustavo Antonio
-- Implementacao de PATCH /filmes/<id>/status atualizando disponibilidade e gravando HistoricoLocacao em uma unica transacao
+Atualização 4: Rotas Transacionais de Locação, Histórico, Exclusão e Lote - Gustavo Antonio
+- Implementação de PATCH /filmes/<id>/status atualizando disponibilidade e gravando HistoricoLocacao em uma única transação
 ACID.
-- Criacao das rotas GET /filmes/<id>/historico, DELETE /filmes/<id> e POST /filmes/lote com prevencao de duplicidade.
+- Criação das rotas GET /filmes/<id>/historico, DELETE /filmes/<id> e POST /filmes/lote com prevenção de duplicidade.
 
-Atualizacao 5: Validacao de Dominios e Tratamento Global de Erros HTTP - Luan Cristan
-- Adicao da funcao validar_dados_filme em backend/app.py garantindo restricoes de ano, preco, midia e avaliacao.
-- Implementacao de errorhandlers globais (404, 405, 500) com rollback automatico e suporte a host 0.0.0.0 para acesso
+Atualização 5: Validação de Domínios e Tratamento Global de Erros HTTP - Luan Cristan
+- Adição da função validar_dados_filme em backend/app.py garantindo restrições de ano, preço, mídia e avaliação.
+- Implementação de errorhandlers globais (404, 405, 500) com rollback automático e suporte a host 0.0.0.0 para acesso
 remoto.
 
-Atualizacao 6: Testes Automatizados da API e Documentacao Inicial - Rian de Oliveira
-- Criacao do script tests/test_api.py validando ciclo CRUD, transacao ACID e validacoes HTTP via requests.
-- Atualizacao inicial do Instrucoes.md com passo a passo para subir o PostgreSQL no Docker e a API Flask.
+Atualização 6: Testes Automatizados da API e Documentação Inicial - Rian de Oliveira
+- Criação do script tests/test_api.py validando ciclo CRUD, transação ACID e validações HTTP via requests.
+- Atualização inicial do Instrucoes.md com passo a passo para subir o PostgreSQL no Docker e a API Flask.
+
+ENTREGA PARCIAL II - 20/11/2026
+
+Atualização 7: Configuração de Rede e Exceções no Cliente Desktop - Rian de Oliveira
+- Criação de config.py para leitura da URL remota da API (LOCADORA_API_URL) e timeout via .env.
+- Criação de dados/excecoes.py (ErroConexaoAPI) e unificação de dependências em requirements.txt.
+
+Atualização 8: Refatoração do Repositório para Comunicação HTTP com Requests - Gustavo Antonio
+- Substituição do armazenamento em dados.json por chamadas HTTP REST (GET, POST, PATCH, DELETE) em dados/repositorio.py 
+usando requests.Session.
+- Implementação dos métodos verificar_conexao() e obter_historico(filme_id) com tratamento de timeout e queda de rede.
+
+Atualização 9: Armazenamento Híbrido (Importação Lote, Exportação CSV e Backup JSON) - Luan Cristan
+- Adaptação de importar_lote() para ler TXT/CSV localmente com QThreadPool e enviar o lote validado para POST /filmes/lote.
+- Adaptação de fazer_backup() para gerar snapshots JSON portáteis em backups/ a partir dos dados consultados na API.
+
+Atualização 10: Resiliência na Interface Gráfica e Indicador de Servidor - Rian de Oliveira
+- Tratamento de ErroConexaoAPI na JanelaPrincipal impedindo travamentos ou fechamentos quando o servidor estiver offline.
+- Adição de indicador visual permanente (Online/Offline) na QStatusBar, ação Reconectar (Ctrl+R) na QToolBar e inclusão de 
+"Documentario" no filtro de gênero.
+
+Atualização 11: Histórico Relacional de Locações na Janela de Detalhes - Luan Cristan
+- Expansão de componentes/janela_detalhes.py com tabela de histórico de aluguéis e devoluções obtida do PostgreSQL.
+- Sincronização segura entre JanelaDetalhesFilme e JanelaPrincipal somente após confirmação da API.
+
+Atualização 12: Documentação da Arquitetura Distribuída e Guia Remoto - Gustavo Antonio
+- Atualização completa de README.md e Instrucoes.md detalhando Docker, configuração de rede remota e justificativa BD vs 
+Arquivos.
