@@ -16,13 +16,16 @@ from dados.repositorio import RepositorioFilmes
 from componentes.dialogo_cadastro import DialogoCadastroFilme
 from componentes.janela_detalhes import JanelaDetalhesFilme
 
+
 class SinaisImportacao(QObject):
     concluido = Signal(int, str)
     progresso = Signal(int)
     erro = Signal(str)
 
+
 class SinaisBackup(QObject):
     backup_concluido = Signal(str)
+
 
 class TrabalhadorImportacao(QRunnable):
     def __init__(self, repositorio, caminho):
@@ -30,6 +33,7 @@ class TrabalhadorImportacao(QRunnable):
         self.repositorio = repositorio
         self.caminho = caminho
         self.sinais = SinaisImportacao()
+
     @Slot()
     def run(self):
         try:
@@ -41,18 +45,19 @@ class TrabalhadorImportacao(QRunnable):
         except Exception as erro:
             self.sinais.erro.emit(str(erro))
 
+
 class JanelaPrincipal(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         self.setWindowTitle("Sistema de Locadora de Filmes (Cliente + API Flask + PostgreSQL)")
         self.resize(940, 620)
         self.setMinimumSize(720, 460)
-        
+
         self.repositorio = RepositorioFilmes()
         self.janela_detalhes = JanelaDetalhesFilme()
         self.threadpool = QThreadPool()
-        
+
         self.sinais_backup = SinaisBackup()
         self.sinais_backup.backup_concluido.connect(self._slot_backup_concluido)
         self._backup_ativo = True
@@ -63,13 +68,13 @@ class JanelaPrincipal(QMainWindow):
         self.thread_backup.start()
 
         self.janela_detalhes.statusModificado.connect(self._slot_status_modificado_externamente)
-        
+
         self._criar_acoes()
         self._criar_menu_ajuda()
         self._criar_barra_ferramentas()
         self._criar_barra_status()
         self._criar_interface_central()
-        
+
         self._carregar_inicial()
 
     def _criar_acoes(self):
@@ -77,31 +82,31 @@ class JanelaPrincipal(QMainWindow):
         self.acao_novo.setStatusTip("Cadastrar um novo filme no catalogo remoto")
         self.acao_novo.setShortcut(QKeySequence("Ctrl+N"))
         self.acao_novo.triggered.connect(self._abrir_dialogo_cadastro)
-    
+
         self.acao_detalhes = QAction("Ver Detalhes", self)
         self.acao_detalhes.setStatusTip("Abrir janela adicional com detalhes e historico")
         self.acao_detalhes.setShortcut(QKeySequence("Ctrl+D"))
         self.acao_detalhes.triggered.connect(self._abrir_janela_detalhes)
-    
+
         self.acao_remover = QAction("Remover Filme", self)
         self.acao_remover.setStatusTip("Excluir o filme selecionado do banco de dados")
         self.acao_remover.setShortcut(QKeySequence.StandardKey.Delete)
         self.acao_remover.triggered.connect(self._remover_filme_selecionado)
-    
+
         self.acao_ver_catalogo = QAction("Ver Catalogo de Filmes", self)
         self.acao_ver_catalogo.setStatusTip("Exibir a tabela de catalogo")
         self.acao_ver_catalogo.setShortcut(QKeySequence("Ctrl+1"))
         self.acao_ver_catalogo.triggered.connect(lambda: self.layout_pilha.setCurrentIndex(0))
-    
+
         self.acao_reconectar = QAction("Atualizar / Reconectar", self)
         self.acao_reconectar.setStatusTip("Testa a conexao com a API Flask e recarrega o catalogo")
         self.acao_reconectar.setShortcut(QKeySequence("Ctrl+R"))
         self.acao_reconectar.triggered.connect(self._reconectar_e_atualizar)
-    
+
         self.acao_sobre = QAction("Sobre o Sistema", self)
         self.acao_sobre.setStatusTip("Informacoes sobre o projeto e a disciplina")
         self.acao_sobre.triggered.connect(self._mostrar_sobre)
-    
+
     def _criar_menu_ajuda(self):
         menu_bar = self.menuBar()
         menu_ajuda = menu_bar.addMenu("Ajuda")
@@ -114,7 +119,7 @@ class JanelaPrincipal(QMainWindow):
         toolbar.setIconSize(QSize(18, 18))
         self.addToolBar(toolbar)
         toolbar.setMovable(False)
-        
+
         toolbar.addAction(self.acao_novo)
         toolbar.addAction(self.acao_detalhes)
         toolbar.addAction(self.acao_remover)
@@ -122,7 +127,7 @@ class JanelaPrincipal(QMainWindow):
         toolbar.addAction(self.acao_ver_catalogo)
         toolbar.addAction(self.acao_reconectar)
         toolbar.addSeparator()
-        
+
         toolbar.addWidget(QLabel(" Busca Rapida: "))
         self.campo_busca_rapida = QLineEdit()
         self.campo_busca_rapida.setPlaceholderText("Titulo...")
@@ -184,15 +189,15 @@ class JanelaPrincipal(QMainWindow):
         self.barra_progresso.setValue(0)
         layout_progresso.addWidget(self.barra_progresso)
         layout_catalogo.addLayout(layout_progresso)
-        
+
         layout_botoes = QHBoxLayout()
         self.btn_locar = QPushButton("Alugar / Devolver")
         self.btn_locar.clicked.connect(self._alternar_locacao_selecionado)
-        
+
         self.btn_exportar = QPushButton("Exportar CSV")
         self.btn_exportar.setToolTip("Exporta todo o catalogo remoto para um arquivo CSV local")
         self.btn_exportar.clicked.connect(self._exportar_catalogo_csv)
-        
+
         self.btn_importar = QPushButton("Importar em Lote")
         self.btn_importar.setToolTip("Importa filmes de um TXT ou CSV para o banco remoto")
         self.btn_importar.clicked.connect(self._importar_catalogo_lote)
@@ -244,7 +249,7 @@ class JanelaPrincipal(QMainWindow):
             return False
 
         filtrados = [
-        f for f in todos
+            f for f in todos
             if (filtro_texto in f["titulo"].lower() if filtro_texto else True)
             and (filtro_genero == "Todos" or f["genero"] == filtro_genero)
         ]
@@ -263,7 +268,7 @@ class JanelaPrincipal(QMainWindow):
             status_str = "Disponivel" if filme["disponivel"] else "Alugado"
             self.tabela_filmes.setItem(linha, 6, QTableWidgetItem(status_str))
             self.tabela_filmes.setItem(linha, 7, QTableWidgetItem(f"{filme['avaliacao']}/10"))
-            
+
         total = len(filtrados)
         porcentagem = int((disponiveis_count / total) * 100) if total > 0 else 0
         self.barra_progresso.setValue(porcentagem)
@@ -283,28 +288,28 @@ class JanelaPrincipal(QMainWindow):
         dialogo = DialogoCadastroFilme(self)
         if dialogo.exec():
             dados = dialogo.obter_dados()
-        try:
-            filme = self.repositorio.adicionar(
-                titulo=dados["titulo"],
-                genero=dados["genero"],
-                ano=dados["ano"],
-                preco=dados["preco"],
-                midia=dados["midia"],
-                disponivel=dados["disponivel"],
-                avaliacao=dados["avaliacao"],
-                sinopse=dados["sinopse"],
-            )         
-        except ErroConexaoAPI as erro:
-            self._definir_indicador_servidor(False)
-            QMessageBox.critical(self, "Erro ao Cadastrar", str(erro))
-            return
+            try:
+                filme = self.repositorio.adicionar(
+                    titulo=dados["titulo"],
+                    genero=dados["genero"],
+                    ano=dados["ano"],
+                    preco=dados["preco"],
+                    midia=dados["midia"],
+                    disponivel=dados["disponivel"],
+                    avaliacao=dados["avaliacao"],
+                    sinopse=dados["sinopse"],
+                )
+            except ErroConexaoAPI as erro:
+                self._definir_indicador_servidor(False)
+                QMessageBox.critical(self, "Erro ao Cadastrar", str(erro))
+                return
 
-        self._atualizar_tabela(silencioso=True)
-        QMessageBox.information(
-            self, "Cadastro Realizado",
-            f"O filme '{filme['titulo']}' foi salvo no PostgreSQL com sucesso!"
-        )
-        self.status_bar.showMessage(f"Filme '{filme['titulo']}' cadastrado no banco remoto.", 3000)
+            self._atualizar_tabela(silencioso=True)
+            QMessageBox.information(
+                self, "Cadastro Realizado",
+                f"O filme '{filme['titulo']}' foi salvo no PostgreSQL com sucesso!"
+            )
+            self.status_bar.showMessage(f"Filme '{filme['titulo']}' cadastrado no banco remoto.", 3000)
 
     def _abrir_janela_detalhes(self):
         try:
@@ -315,12 +320,13 @@ class JanelaPrincipal(QMainWindow):
                     "Por favor, selecione um filme na tabela para ver os detalhes."
                 )
                 return
+            historico = self.repositorio.obter_historico(filme["id"])
         except ErroConexaoAPI as erro:
             self._definir_indicador_servidor(False)
             QMessageBox.critical(self, "Erro de Comunicacao", str(erro))
             return
 
-        self.janela_detalhes.exibir_filme(filme)
+        self.janela_detalhes.exibir_filme(filme, historico)
         self.status_bar.showMessage(f"Detalhes de '{filme['titulo']}' abertos.", 3000)
 
     def _alternar_locacao_selecionado(self):
@@ -331,18 +337,23 @@ class JanelaPrincipal(QMainWindow):
                 return
             novo_status = not filme["disponivel"]
             filme_atualizado = self.repositorio.alterar_status(filme["id"], novo_status)
+            if not filme_atualizado:
+                QMessageBox.warning(self, "Registro Ausente", "Filme nao encontrado no servidor.")
+                self._atualizar_tabela(silencioso=True)
+                return
+            historico = self.repositorio.obter_historico(filme["id"])
         except ErroConexaoAPI as erro:
             self._definir_indicador_servidor(False)
             QMessageBox.critical(self, "Erro de Locacao", str(erro))
             return
-        
+
         self._atualizar_tabela(silencioso=True)
         if (
             self.janela_detalhes.isVisible()
             and self.janela_detalhes._filme_atual
             and self.janela_detalhes._filme_atual["id"] == filme["id"]
         ):
-            self.janela_detalhes.exibir_filme(filme_atualizado)
+            self.janela_detalhes.exibir_filme(filme_atualizado, historico)
 
         acao = "locado" if not novo_status else "devolvido"
         self.status_bar.showMessage(f"Filme '{filme_atualizado['titulo']}' foi {acao}.", 3000)
@@ -354,11 +365,11 @@ class JanelaPrincipal(QMainWindow):
             self._definir_indicador_servidor(False)
             QMessageBox.critical(self, "Erro de Comunicacao", str(erro))
             return
-        
+
         if not filme:
             QMessageBox.warning(self, "Nenhuma Selecao", "Selecione um filme para remover.")
             return
-        
+
         resposta = QMessageBox.question(
             self, "Confirmar Remocao",
             f"Deseja realmente remover o filme '{filme['titulo']}' do banco de dados?",
@@ -394,7 +405,7 @@ class JanelaPrincipal(QMainWindow):
             return
         if not caminho.lower().endswith(".csv"):
             caminho += ".csv"
-        
+
         try:
             quantidade = self.repositorio.exportar_csv(caminho)
         except (OSError, ErroConexaoAPI) as erro:
@@ -461,13 +472,19 @@ class JanelaPrincipal(QMainWindow):
 
     def _slot_status_modificado_externamente(self, filme_id, disponivel):
         try:
-            self.repositorio.alterar_status(filme_id, disponivel)
+            filme_atualizado = self.repositorio.alterar_status(filme_id, disponivel)
+            if not filme_atualizado:
+                QMessageBox.warning(self, "Registro Ausente", "Filme nao encontrado no servidor.")
+                self._atualizar_tabela(silencioso=True)
+                return
+            historico = self.repositorio.obter_historico(filme_id)
         except ErroConexaoAPI as erro:
             self._definir_indicador_servidor(False)
             QMessageBox.critical(self, "Erro de Locacao", str(erro))
             return
-        
+
         self._atualizar_tabela(silencioso=True)
+        self.janela_detalhes.exibir_filme(filme_atualizado, historico)
         self.status_bar.showMessage(f"Status do filme ID {filme_id} atualizado no banco remoto.", 3000)
 
     def _mostrar_sobre(self):
@@ -515,7 +532,7 @@ class JanelaPrincipal(QMainWindow):
                     self.sinais_backup.backup_concluido.emit(caminho)
             except Exception as erro:
                 print(f"[Backup Automatico] Aviso: {erro}")
-            
+
             for _ in range(600):
                 if not self._backup_ativo:
                     break

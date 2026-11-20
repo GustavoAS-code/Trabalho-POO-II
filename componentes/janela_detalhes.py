@@ -1,23 +1,24 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QGroupBox, QHBoxLayout, QHeaderView, QLabel,
+    QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+)
 
 
 class JanelaDetalhesFilme(QWidget):
-    # Sinal customizado emitido quando o status do filme e modificado nesta janela
+    # Sinal customizado emitido quando o usuario solicita alternar o status
     statusModificado = Signal(int, bool)
 
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Detalhes do Filme - Locadora")
-        self.setMinimumSize(380, 320)
+        self.setMinimumSize(440, 460)
 
         self._filme_atual = None
 
-        # Layout vertical principal
         layout_principal = QVBoxLayout()
 
-        # Grupo com informacoes do filme
         grupo_info = QGroupBox("Ficha Tecnica")
         layout_info = QVBoxLayout()
 
@@ -44,7 +45,19 @@ class JanelaDetalhesFilme(QWidget):
 
         layout_principal.addWidget(grupo_info)
 
-        # Botoes de acao na janela secundaria
+        # Historico relacional vindo do PostgreSQL
+        grupo_historico = QGroupBox("Historico de Locacoes (Banco de Dados)")
+        layout_hist = QVBoxLayout()
+        self.tabela_historico = QTableWidget(0, 2)
+        self.tabela_historico.setHorizontalHeaderLabels(["Data / Hora (UTC)", "Movimentacao"])
+        self.tabela_historico.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabela_historico.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.tabela_historico.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabela_historico.setMaximumHeight(140)
+        layout_hist.addWidget(self.tabela_historico)
+        grupo_historico.setLayout(layout_hist)
+        layout_principal.addWidget(grupo_historico)
+
         layout_botoes = QHBoxLayout()
         self.botao_alternar_status = QPushButton("Alternar Locacao (Alugar/Devolver)")
         self.botao_alternar_status.clicked.connect(self._alternar_locacao)
@@ -58,8 +71,8 @@ class JanelaDetalhesFilme(QWidget):
 
         self.setLayout(layout_principal)
 
-    def exibir_filme(self, filme):
-        #Atualiza a interface da janela secundaria com os dados do filme recebido.
+    def exibir_filme(self, filme, historico=None):
+        # Atualiza a ficha tecnica e o historico relacional do filme.
         self._filme_atual = filme
         if not filme:
             return
@@ -74,11 +87,16 @@ class JanelaDetalhesFilme(QWidget):
         self.label_avaliacao.setText(f"Avaliacao: {filme['avaliacao']} / 10")
         self.label_sinopse.setText(f"Sinopse: {filme['sinopse'] or 'Sem sinopse cadastrada.'}")
 
-        # Atualiza o texto do botao de acao
         if filme["disponivel"]:
             self.botao_alternar_status.setText("Realizar Locacao")
         else:
             self.botao_alternar_status.setText("Registrar Devolucao")
+
+        registros = historico or []
+        self.tabela_historico.setRowCount(len(registros))
+        for linha, reg in enumerate(registros):
+            self.tabela_historico.setItem(linha, 0, QTableWidgetItem(reg.get("data_hora", "-")))
+            self.tabela_historico.setItem(linha, 1, QTableWidgetItem(reg.get("acao", "-")))
 
         self.show()
         self.raise_()
@@ -87,10 +105,5 @@ class JanelaDetalhesFilme(QWidget):
     def _alternar_locacao(self):
         if not self._filme_atual:
             return
-
         novo_status = not self._filme_atual["disponivel"]
-        self._filme_atual["disponivel"] = novo_status
         self.statusModificado.emit(self._filme_atual["id"], novo_status)
-
-        # Atualiza a propria interface
-        self.exibir_filme(self._filme_atual)
