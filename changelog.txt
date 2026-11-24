@@ -89,3 +89,18 @@ Atualização 11: Histórico Relacional de Locações na Janela de Detalhes - Lu
 Atualização 12: Documentação da Arquitetura Distribuída e Guia Remoto - Gustavo Antonio
 - Atualização completa de README.md e Instrucoes.md detalhando Docker, configuração de rede remota e justificativa BD vs 
 Arquivos.
+
+ENTREGA FINAL (PARCIAL III) - 23/11/2026
+
+Atualização 13: Refino de Concorrência, Threads e Testes Ponta a Ponta 
+- Aprimoramento do sinal backup_erro em SinaisBackup e encerramento seguro do QThreadPool (waitForDone) no closeEvent.
+- Criação de tests/verificar_sistema.py para validação completa da integração Cliente -> Flask -> PostgreSQL Docker.
+
+Atualização 14: Polimento Visual, Docker e Validação Remota 
+- Atualização do diálogo "Sobre o Sistema" exibindo a arquitetura distribuída e o endereço do servidor ativo.
+- Limpeza de arquivos residuais locais e revisão final de .gitignore e docker-compose.yml.
+
+Atualização 15: Consolidação do Relatório SBC e Empacotamento Final
+
+- Finalização do relatório técnico em PDF no template oficial da SBC (Sociedade Brasileira de Computação).
+- Revisão final de código, changelog.txt e geração do pacote .zip.
