@@ -493,7 +493,7 @@ class JanelaPrincipal(QMainWindow):
         QMessageBox.about(
             self, "Sobre a Locadora de Filmes",
             "<h3>Locadora de Filmes - Trabalho 03</h3>"
-            "<p>Trabalho Pratico da disciplina de <b>Programacao Orientada a Objetos II</b> (UFPI).</p>"
+            "<p>Trabalho Prático da disciplina de <b>Programação Orientada a Objetos II</b> (UFPI).</p>"
             "<p><b>Arquitetura:</b> Cliente Desktop (PySide6 + Requests) &rarr; "
             "API REST (Flask + SQLAlchemy) &rarr; PostgreSQL em Conteiner Docker.</p>"
             f"<p><b>Servidor configurado:</b> <code>{API_BASE_URL}</code></p>"
