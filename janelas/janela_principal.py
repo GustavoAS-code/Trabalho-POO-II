@@ -25,6 +25,7 @@ class SinaisImportacao(QObject):
 
 class SinaisBackup(QObject):
     backup_concluido = Signal(str)
+    backup_erro = Signal(str)
 
 
 class TrabalhadorImportacao(QRunnable):
@@ -60,6 +61,7 @@ class JanelaPrincipal(QMainWindow):
 
         self.sinais_backup = SinaisBackup()
         self.sinais_backup.backup_concluido.connect(self._slot_backup_concluido)
+        self.sinais_backup.backup_erro.connect(self._slot_backup_erro)
         self._backup_ativo = True
         self.thread_backup = threading.Thread(
             target=self._rotina_backup_automatico,
@@ -505,6 +507,7 @@ class JanelaPrincipal(QMainWindow):
         )
         if resposta == QMessageBox.StandardButton.Yes:
             self._backup_ativo = False
+            self.threadpool.waitForDone(2000)
             self.janela_detalhes.close()
             event.accept()
         else:
@@ -530,8 +533,10 @@ class JanelaPrincipal(QMainWindow):
                 caminho = self.repositorio.fazer_backup()
                 if caminho:
                     self.sinais_backup.backup_concluido.emit(caminho)
+            except ErroConexaoAPI as erro:
+                self.sinais_backup.backup_erro.emit(str(erro))
             except Exception as erro:
-                print(f"[Backup Automatico] Aviso: {erro}")
+                self.sinais_backup.backup_erro.emit(str(erro))
 
             for _ in range(600):
                 if not self._backup_ativo:
@@ -541,3 +546,7 @@ class JanelaPrincipal(QMainWindow):
     def _slot_backup_concluido(self, caminho_backup):
         nome_arquivo = os.path.basename(caminho_backup)
         self.status_bar.showMessage(f"[Backup Automatico] Snapshot salvo: {nome_arquivo}", 4000)
+
+    def _slot_backup_erro(self, mensagem):
+        self._definir_indicador_servidor(False)
+        self.status_bar.showMessage(f"[Backup Automatico] Aguardando servidor: {mensagem}", 4000)
